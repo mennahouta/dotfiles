@@ -1,0 +1,236 @@
+-- Auto-import and code action enhancements for TypeScript/JavaScript
+return {
+  -- Show code action lightbulb (indicates when imports are available)
+  {
+    "kosayoda/nvim-lightbulb",
+    dependencies = { "neovim/nvim-lspconfig" },
+    opts = {
+      autocmd = { enabled = true },
+      sign = {
+        enabled = true,
+        text = "💡",
+        hl = "LightBulbSign",
+      },
+      virtual_text = {
+        enabled = false,
+        text = "💡",
+        hl = "LightBulbVirtualText",
+      },
+      float = {
+        enabled = false,
+        text = "💡",
+        hl = "LightBulbFloatWin",
+        win_opts = {},
+      },
+      status_text = {
+        enabled = false,
+      },
+      action_kinds = {
+        "quickfix",
+        "refactor",
+        "refactor.extract",
+        "refactor.inline",
+        "refactor.rewrite",
+        "source",
+        "source.organizeImports",
+        "source.addMissingImports",
+        "source.fixAll",
+      },
+      ignore = {
+        ft = {},
+      },
+    },
+    config = function(_, opts)
+      require("nvim-lightbulb").setup(opts)
+
+      -- Auto-trigger code actions on cursor hold (includes auto-imports)
+      vim.api.nvim_create_autocmd("CursorHold", {
+        callback = function()
+          require("nvim-lightbulb").update_lightbulb()
+        end,
+      })
+    end,
+    keys = {
+      {
+        "<leader>ca",
+        function()
+          vim.lsp.buf.code_action()
+        end,
+        desc = "Code Actions (includes auto-imports)",
+      },
+      {
+        "<leader>.",
+        function()
+          vim.lsp.buf.code_action()
+        end,
+        desc = "Code Actions (includes auto-imports)",
+      },
+    },
+  },
+
+  -- Enhanced auto-import on type
+  {
+    "neovim/nvim-lspconfig",
+    opts = function(_, opts)
+      -- Enable automatic completion for imports
+      if opts.capabilities == nil then
+        opts.capabilities = {}
+      end
+      if opts.capabilities.textDocument == nil then
+        opts.capabilities.textDocument = {}
+      end
+      if opts.capabilities.textDocument.completion == nil then
+        opts.capabilities.textDocument.completion = {}
+      end
+
+      -- Enable import suggestions in completion
+      opts.capabilities.textDocument.completion.completionItem = {
+        insertReplaceSupport = {
+          valueSupport = true,
+          patternSupport = true,
+        },
+        labelDetailsSupport = true,
+        documentationFormat = { "markdown", "plaintext" },
+        snippetSupport = true,
+        commitCharactersSupport = true,
+        deprecatedSupport = true,
+        preselectSupport = true,
+        tagSupport = {
+          valueSet = { 1 },
+        },
+        resolveSupport = {
+          properties = {
+            "documentation",
+            "detail",
+            "additionalTextEdits",
+          },
+        },
+      }
+
+      -- Auto-import on type (if supported by LSP)
+      opts.capabilities.textDocument.completion.completionItemKind = {
+        valueSet = {
+          1,  -- Text
+          2,  -- Method
+          3,  -- Function
+          4,  -- Constructor
+          5,  -- Field
+          6,  -- Variable
+          7,  -- Class
+          8,  -- Interface
+          9,  -- Module
+          10, -- Property
+          11, -- Unit
+          12, -- Value
+          13, -- Enum
+          14, -- Keyword
+          15, -- Snippet
+          16, -- Color
+          17, -- File
+          18, -- Reference
+          19, -- Folder
+          20, -- EnumMember
+          21, -- Constant
+          22, -- Struct
+          23, -- Event
+          24, -- Operator
+          25, -- TypeParameter
+        },
+      }
+
+      return opts
+    end,
+  },
+
+  -- Auto-fix imports on save
+  {
+    "neovim/nvim-lspconfig",
+    event = "BufWritePre",
+    config = function()
+      -- Auto organize imports on save
+      vim.api.nvim_create_autocmd("BufWritePre", {
+        pattern = { "*.ts", "*.tsx", "*.js", "*.jsx" },
+        callback = function()
+          local params = vim.lsp.util.make_range_params()
+          params.context = {
+            only = {
+              "source.organizeImports",
+              "source.addMissingImports",
+              "source.removeUnusedImports",
+              "source.sortImports",
+            },
+            diagnostics = {},
+          }
+
+          local result = vim.lsp.buf_request_sync(0, "textDocument/codeAction", params, 1000)
+          for cid, res in pairs(result or {}) do
+            for _, r in pairs(res.result or {}) do
+              if r.edit then
+                vim.lsp.util.apply_workspace_edit(r.edit, "UTF-8")
+              else
+                vim.lsp.buf.execute_command(r.command)
+              end
+            end
+          end
+        end,
+      })
+    end,
+  },
+
+  -- Enhanced completion menu for imports
+  {
+    "hrsh7th/nvim-cmp",
+    opts = function(_, opts)
+      local cmp = require("cmp")
+
+      -- Show import paths in completion menu
+      opts.formatting.format = function(entry, item)
+        local original_format = opts.formatting.format
+        if original_format then
+          item = original_format(entry, item)
+        end
+
+        -- Show import path for LSP completions
+        if entry.source.name == "nvim_lsp" then
+          local detail = entry.completion_item.detail
+          if detail and detail ~= "" then
+            item.menu = detail
+          end
+        end
+
+        return item
+      end
+
+      -- Auto-select and confirm completions that are obvious
+      opts.mapping = vim.tbl_extend("force", opts.mapping or {}, {
+        ["<C-y>"] = cmp.mapping.confirm({
+          behavior = cmp.ConfirmBehavior.Replace,
+          select = true,
+        }),
+      })
+
+      -- Add import icons
+      if opts.formatting then
+        opts.formatting.format = function(entry, item)
+          local original_format = opts.formatting.format
+          if original_format then
+            item = original_format(entry, item)
+          end
+
+          -- Special handling for imports
+          if entry.source.name == "nvim_lsp" then
+            local kind = entry.completion_item.kind
+            if kind == 6 or kind == 22 or kind == 25 then
+              -- Variable, Struct, TypeParameter - likely import
+              item.kind_hl = "CmpItemKindImport"
+            end
+          end
+
+          return item
+        end
+      end
+
+      return opts
+    end,
+  },
+}

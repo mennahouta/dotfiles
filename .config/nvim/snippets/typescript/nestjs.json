@@ -1,0 +1,331 @@
+{
+  "NestJS Module": {
+    "prefix": "module",
+    "description": "Create a NestJS module",
+    "body": [
+      "import { Module } from '@nestjs/common';",
+      "import { ${1:Service}Service } from './${2:service}.service';",
+      "import { ${3:Controller}Controller } from './${4:controller}.controller';",
+      "",
+      "@Module({",
+      "  imports: [],",
+      "  controllers: [${3:Controller}Controller],",
+      "  providers: [${1:Service}Service],",
+      "  exports: [${1:Service}Service],",
+      "})",
+      "export class ${5:Module}Module {}"
+    ]
+  },
+  "NestJS Controller": {
+    "prefix": "controller",
+    "description": "Create a NestJS controller",
+    "body": [
+      "import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';",
+      "import { ${1:Service}Service } from './${2:service}.service';",
+      "import { Create${3:Entity}Dto } from './dto/create-${4:entity}.dto';",
+      "import { Update${3:Entity}Dto } from './dto/update-${4:entity}.dto';",
+      "",
+      "@Controller('${5:route}')",
+      "export class ${6:Controller}Controller {",
+      "  constructor(private readonly ${1:Service}Service: ${1:Service}Service) {}",
+      "",
+      "  @Get()",
+      "  findAll(@Query() query: any) {",
+      "    return this.${1:Service}Service.findAll(query);",
+      "  }",
+      "",
+      "  @Get(':id')",
+      "  findOne(@Param('id') id: string) {",
+      "    return this.${1:Service}Service.findOne(id);",
+      "  }",
+      "",
+      "  @Post()",
+      "  create(@Body() create${3:Entity}Dto: Create${3:Entity}Dto) {",
+      "    return this.${1:Service}Service.create(create${3:Entity}Dto);",
+      "  }",
+      "",
+      "  @Put(':id')",
+      "  update(@Param('id') id: string, @Body() update${3:Entity}Dto: Update${3:Entity}Dto) {",
+      "    return this.${1:Service}Service.update(id, update${3:Entity}Dto);",
+      "  }",
+      "",
+      "  @Delete(':id')",
+      "  remove(@Param('id') id: string) {",
+      "    return this.${1:Service}Service.remove(id);",
+      "  }",
+      "}"
+    ]
+  },
+  "NestJS Service": {
+    "prefix": "service",
+    "description": "Create a NestJS service",
+    "body": [
+      "import { Injectable, NotFoundException } from '@nestjs/common';",
+      "import { Repository } from '@litecore/common';",
+      "import { ${1:Entity} } from './entities/${2:entity}.entity';",
+      "import { Create${3:Entity}Dto } from './dto/create-${4:entity}.dto';",
+      "import { Update${3:Entity}Dto } from './dto/update-${4:entity}.dto';",
+      "",
+      "@Injectable()",
+      "export class ${5:Service}Service {",
+      "  constructor(",
+      "    @InjectRepository(${1:Entity})",
+      "    private readonly ${6:repository}: Repository<${1:Entity}, string>,",
+      "  ) {}",
+      "",
+      "  async create(create${3:Entity}Dto: Create${3:Entity}Dto): Promise<${1:Entity}> {",
+      "    const ${7:entity} = this.${6:repository}.create(create${3:Entity}Dto);",
+      "    return this.${6:repository}.save(${7:entity});",
+      "  }",
+      "",
+      "  async findAll(query: any = {}): Promise<${1:Entity}[]> {",
+      "    return this.${6:repository}.findAll(query);",
+      "  }",
+      "",
+      "  async findOne(id: string): Promise<${1:Entity}> {",
+      "    const ${8:entity} = await this.${6:repository}.findById(id);",
+      "    if (!${8:entity}) {",
+      "      throw new NotFoundException('${1:Entity} not found');",
+      "    }",
+      "    return ${8:entity};",
+      "  }",
+      "",
+      "  async update(id: string, update${3:Entity}Dto: Update${3:Entity}Dto): Promise<${1:Entity}> {",
+      "    await this.${6:repository}.update(id, update${3:Entity}Dto);",
+      "    return this.findOne(id);",
+      "  }",
+      "",
+      "  async remove(id: string): Promise<void> {",
+      "    await this.${6:repository}.delete(id);",
+      "  }",
+      "}"
+    ]
+  },
+  "NestJS Entity": {
+    "prefix": "entity",
+    "description": "Create a NestJS entity",
+    "body": [
+      "import { PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';",
+      "",
+      "export class ${1:Entity} {",
+      "  @PrimaryGeneratedColumn('uuid')",
+      "  id: string;",
+      "",
+      "  ${2:columns}",
+      "",
+      "  @CreateDateColumn({ name: 'created_at' })",
+      "  createdAt: Date;",
+      "",
+      "  @UpdateDateColumn({ name: 'updated_at' })",
+      "  updatedAt: Date;",
+      "}"
+    ]
+  },
+  "NestJS DTO": {
+    "prefix": "dto",
+    "description": "Create a NestJS DTO",
+    "body": [
+      "import { ApiProperty } from '@nestjs/swagger';",
+      "import { IsString, IsEmail, IsOptional, MinLength, MaxLength } from 'class-validator';",
+      "",
+      "export class Create${1:Entity}Dto {",
+      "  ${2:properties}",
+      "}",
+      "",
+      "export class Update${1:Entity}Dto extends Create${1:Entity}Dto {",
+      "  ${3:optional_properties}",
+      "}"
+    ]
+  },
+  "NestJS Get Endpoint": {
+    "prefix": "get",
+    "description": "Create a GET endpoint",
+    "body": [
+      "@Get('${1:route}')",
+      "${2:methodName}(@Query() query: any) {",
+      "  return this.${3:service}.find${4:All}(query);",
+      "}"
+    ]
+  },
+  "NestJS Post Endpoint": {
+    "prefix": "post",
+    "description": "Create a POST endpoint",
+    "body": [
+      "@Post('${1:route}')",
+      "${2:methodName}(@Body() create${3:Entity}Dto: Create${3:Entity}Dto) {",
+      "  return this.${4:service}.create(create${3:Entity}Dto);",
+      "}"
+    ]
+  },
+  "NestJS Put Endpoint": {
+    "prefix": "put",
+    "description": "Create a PUT endpoint",
+    "body": [
+      "@Put('${1:route}')",
+      "${2:methodName}(@Param('id') id: string, @Body() update${3:Entity}Dto: Update${3:Entity}Dto) {",
+      "  return this.${4:service}.update(id, update${3:Entity}Dto);",
+      "}"
+    ]
+  },
+  "NestJS Delete Endpoint": {
+    "prefix": "delete",
+    "description": "Create a DELETE endpoint",
+    "body": [
+      "@Delete('${1:route}')",
+      "remove(@Param('id') id: string) {",
+      "  return this.${2:service}.remove(id);",
+      "}"
+    ]
+  },
+  "NestJS Injectable": {
+    "prefix": "injectable",
+    "description": "Create an injectable service",
+    "body": [
+      "import { Injectable } from '@nestjs/common';",
+      "",
+      "@Injectable()",
+      "export class ${1:Service}Service {",
+      "  constructor() {}",
+      "}"
+    ]
+  },
+  "NestJS Guard": {
+    "prefix": "guard",
+    "description": "Create a NestJS guard",
+    "body": [
+      "import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';",
+      "import { Reflector } from '@nestjs/core';",
+      "",
+      "@Injectable()",
+      "export class ${1:Guard}Guard implements CanActivate {",
+      "  constructor(private reflector: Reflector) {}",
+      "",
+      "  canActivate(context: ExecutionContext): boolean {",
+      "    const requiredRoles = this.reflector.getAllAndOverride<string[]>('roles', [",
+      "      context.getHandler(),",
+      "      context.getClass(),",
+      "    ]);",
+      "    if (!requiredRoles) {",
+      "      return true;",
+      "    }",
+      "    const { user } = context.switchToHttp().getRequest();",
+      "    return requiredRoles.some((role) => user.roles?.includes(role));",
+      "  }",
+      "}"
+    ]
+  },
+  "NestJS Middleware": {
+    "prefix": "middleware",
+    "description": "Create a NestJS middleware",
+    "body": [
+      "import { Injectable, NestMiddleware, Logger } from '@nestjs/common';",
+      "import { Request, Response, NextFunction } from 'express';",
+      "",
+      "@Injectable()",
+      "export class ${1:Middleware}Middleware implements NestMiddleware {",
+      "  private readonly logger = new Logger(${1:Middleware}Middleware.name);",
+      "",
+      "  use(req: Request, res: Response, next: NextFunction) {",
+      "    this.logger.log(`${req.method} ${req.url}`);",
+      "    next();",
+      "  }",
+      "}"
+    ]
+  },
+  "NestJS Exception Filter": {
+    "prefix": "exception-filter",
+    "description": "Create a NestJS exception filter",
+    "body": [
+      "import { ExceptionFilter, Catch, ArgumentsHost, HttpException } from '@nestjs/common';",
+      "import { Response } from 'express';",
+      "",
+      "@Catch(HttpException)",
+      "export class ${1:Exception}Filter implements ExceptionFilter {",
+      "  catch(exception: HttpException, host: ArgumentsHost) {",
+      "    const ctx = host.switchToHttp();",
+      "    const response = ctx.getResponse<Response>();",
+      "    const status = exception.getStatus();",
+      "    const exceptionResponse = exception.getResponse();",
+      "",
+      "    response.status(status).json({",
+      "      statusCode: status,",
+      "      message: exceptionResponse['message'] || exception.message,",
+      "      timestamp: new Date().toISOString(),",
+      "    });",
+      "  }",
+      "}"
+    ]
+  },
+  "NestJS Pipe": {
+    "prefix": "pipe",
+    "description": "Create a NestJS pipe",
+    "body": [
+      "import { PipeTransform, Injectable, ArgumentMetadata, BadRequestException } from '@nestjs/common';",
+      "",
+      "@Injectable()",
+      "export class ${1:Pipe}Pipe implements PipeTransform {",
+      "  transform(value: any, metadata: ArgumentMetadata) {",
+      "    ${2:validation_logic}",
+      "    return value;",
+      "  }",
+      "}"
+    ]
+  },
+  "NestJS Decorator": {
+    "prefix": "decorator",
+    "description": "Create a NestJS decorator",
+    "body": [
+      "import { createParamDecorator, ExecutionContext } from '@nestjs/common';",
+      "",
+      "export const ${1:Decorator} = createParamDecorator(",
+      "  (data: unknown, ctx: ExecutionContext) => {",
+      "    const request = ctx.switchToHttp().getRequest();",
+      "    ${2:logic}",
+      "  },",
+      ");"
+    ]
+  },
+  "NestJS Event Listener": {
+    "prefix": "event-listener",
+    "description": "Create a NestJS event listener",
+    "body": [
+      "import { OnEvent } from '@nestjs/common';",
+      "",
+      "@OnEvent('${1:event}')",
+      "handle${2:Event}(payload: any) {",
+      "  ${3:logic}",
+      "}"
+    ]
+  },
+  "NestJS Schedule Task": {
+    "prefix": "schedule",
+    "description": "Create a scheduled task",
+    "body": [
+      "import { Cron, CronExpression, Interval, Timeout } from '@nestjs/schedule';",
+      "",
+      "@Cron(CronExpression.EVERY_MINUTE)",
+      "handle${1:Task}() {",
+      "  ${2:logic}",
+      "}"
+    ]
+  },
+  "NestJS WebSocket Gateway": {
+    "prefix": "gateway",
+    "description": "Create a NestJS WebSocket gateway",
+    "body": [
+      "import { WebSocketGateway, SubscribeMessage, MessageBody, WebSocketServer } from '@nestjs/websockets';",
+      "import { Server, Socket } from 'socket.io';",
+      "",
+      "@WebSocketGateway({ cors: true })",
+      "export class ${1:Gateway}Gateway {",
+      "  @WebSocketServer()",
+      "  server: Server;",
+      "",
+      "  @SubscribeMessage('${2:event}')",
+      "  handleMessage(@MessageBody() data: any, client: Socket) {",
+      "    ${3:logic}",
+      "  }",
+      "}"
+    ]
+  }
+}
